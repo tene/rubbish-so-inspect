@@ -195,6 +195,7 @@ int cb(struct dl_phdr_info *info, size_t size, void *data) {
     Elf32_Word *gnuhash = NULL;
     const char *strtable = NULL;
     ElfW(Sym) *symtable = NULL;
+    int symcount, symtabsize, strsize, syment;
  
     printf("name=%s (%d segments)\n", info->dlpi_name,
         info->dlpi_phnum);
@@ -215,30 +216,43 @@ int cb(struct dl_phdr_info *info, size_t size, void *data) {
         int i=0;
         printf("  Has dynamic symbols:\n");
         while (dyn[i].d_tag != DT_NULL) {
-            printf("%2d", i);
             switch(dyn[i].d_tag) {
                 case DT_HASH:
-                    printf("    Found hash!");
+                    printf("    Found hash!\n");
                     hash = (ElfW(Word) *) dyn[i].d_un.d_ptr;
                     break;
                 case DT_GNU_HASH:
-                    printf("    Found GNU hash!");
+                    printf("    Found GNU hash!\n");
                     gnuhash = (Elf32_Word *) dyn[i].d_un.d_ptr;
                     break;
                 case DT_STRTAB:
-                    printf("    Found String Table!");
+                    printf("    Found String Table!\n");
                     strtable = (const char *) dyn[i].d_un.d_ptr;
                     break;
                 case DT_SYMTAB:
-                    printf("    Found Symbol Table!");
+                    printf("    Found Symbol Table!\n");
                     symtable = (ElfW(Sym) *) dyn[i].d_un.d_ptr;
                     break;
-                default:
-                    printf("    %s", fill_dyn_tagname(dyn[i].d_tag, name));
+                case DT_STRSZ:
+                    strsize = (ElfW(Word)) dyn[i].d_un.d_val;
+                    printf("    String Table size: %d\n", strsize);
+                    break;
+                case DT_SYMENT:
+                    syment = (ElfW(Word)) dyn[i].d_un.d_val;
+                    printf("    Symbol Table entry size: %d\n", syment);
+                    break;
+                //default:
+                //    printf("    %s\n", fill_dyn_tagname(dyn[i].d_tag, name));
             }
-            printf("\n");
             i++;
         };
+        if (symtable && strtable) {
+            // str table comes after sym table
+            symtabsize = strtable - (char *) symtable;
+            symcount = symtabsize/syment;
+            printf("    Symbol Table size: %d\n", symtabsize);
+            printf("    Symbol Table entries: %d\n", symcount);
+        }
     }
     return 0;
 }
