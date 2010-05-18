@@ -37,6 +37,9 @@ int cb(struct dl_phdr_info *info, size_t size, void *data) {
             case PT_PHDR:
                 printf("PHDR");
                 break;
+            case PT_TLS:
+                printf("TLS");
+                break;
             case PT_LOPROC:
                 printf("LOPROC");
                 break;
