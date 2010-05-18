@@ -196,6 +196,9 @@ int cb(struct dl_phdr_info *info, size_t size, void *data) {
     const char *strtable = NULL;
     ElfW(Sym) *symtable = NULL;
     int symcount, symtabsize, strsize, syment;
+    if (strcmp((const char *) data, info->dlpi_name)) {
+        return(0);
+    }
  
     printf("name=%s (%d segments)\n", info->dlpi_name,
         info->dlpi_phnum);
@@ -247,11 +250,17 @@ int cb(struct dl_phdr_info *info, size_t size, void *data) {
             i++;
         };
         if (symtable && strtable) {
+            int i;
             // str table comes after sym table
             symtabsize = strtable - (char *) symtable;
             symcount = symtabsize/syment;
             printf("    Symbol Table size: %d\n", symtabsize);
             printf("    Symbol Table entries: %d\n", symcount);
+            for (i = 0; i < symcount; i++) {
+                ElfW(Sym) *sym = &symtable[i];
+                const char *name = &strtable[sym->st_name];
+                printf("    >> %s\n", name);
+            }
         }
     }
     return 0;
@@ -259,11 +268,14 @@ int cb(struct dl_phdr_info *info, size_t size, void *data) {
 
 int main(int argc, char **argv) {
     void *lib_handle;
-    void (*fn)();
-    lib_handle = dlopen("./alpha.so", RTLD_NOW);
-    fn = dlsym(lib_handle, "lol");
-    (*fn)();
-    dl_iterate_phdr(&cb, NULL);
+    const char *lib_name;
+    if (argc != 2) {
+        printf("Usage: %s libname.so\n", argv[0]);
+        return(1);
+    }
+    lib_name = argv[1];
+    lib_handle = dlopen(lib_name, RTLD_NOW);
+    dl_iterate_phdr(&cb, (void *)lib_name);
     dlclose(lib_handle);
     return(0);
 }
